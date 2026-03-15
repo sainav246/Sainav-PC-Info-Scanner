@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>PC Info Scanner</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  body { font-family: 'Inter', sans-serif; margin:0; background:#f0f2f5; color:#333; }
+  header { background:#2f3640; color:#fff; padding:25px 20px; text-align:center; }
+  header h1 { margin:0; font-weight:600; font-size:28px; }
+  header p { margin:5px 0 0 0; font-size:14px; color:#ddd; }
+  main { padding:20px; max-width:900px; margin:auto; }
+  section { background:#fff; border-radius:10px; padding:15px 20px; margin-bottom:20px; box-shadow:0 2px 10px rgba(0,0,0,0.1); }
+  section h2 { margin-top:0; color:#2f3640; border-bottom:2px solid #44bd32; padding-bottom:5px; }
+  table { width:100%; border-collapse: collapse; margin-top:10px; }
+  th, td { padding:10px 12px; text-align:left; border-bottom:1px solid #eee; }
+  th { background:#44bd32; color:#fff; border-radius:6px; }
+  tr:hover { background:#f9f9f9; }
+  #buttons { text-align:center; margin-bottom:20px; }
+  button { background:#44bd32; color:#fff; border:none; padding:12px 25px; margin:10px 5px; cursor:pointer; font-size:16px; border-radius:8px; transition:0.2s; }
+  button:hover { background:#4cd137; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>PC Info Scanner</h1>
+  <p>Scan your system and download a detailed report</p>
+</header>
+
+<main>
+  <div id="buttons">
+    <button id="scan">Scan PC</button>
+    <button id="download" style="display:none;">Download Report</button>
+  </div>
+
+  <section id="hardwareSection" style="display:none;">
+    <h2>Hardware</h2>
+    <table id="hardwareTable">
+      <tr><th>Property</th><th>Value</th></tr>
+    </table>
+  </section>
+
+  <section id="softwareSection" style="display:none;">
+    <h2>Software</h2>
+    <table id="softwareTable">
+      <tr><th>Property</th><th>Value</th></tr>
+    </table>
+  </section>
+
+  <section id="networkSection" style="display:none;">
+    <h2>Network</h2>
+    <table id="networkTable">
+      <tr><th>Property</th><th>Value</th></tr>
+    </table>
+  </section>
+</main>
+
+<script>
+const scanBtn = document.getElementById("scan");
+const downloadBtn = document.getElementById("download");
+let pcInfo = {};
+
+function addRow(table, property, value){
+  const row = table.insertRow();
+  const cell1 = row.insertCell(0);
+  const cell2 = row.insertCell(1);
+  cell1.innerText = property;
+  cell2.innerText = value;
+}
+
+async function scanPC(){
+  pcInfo = {}; // reset info
+
+  // Hardware
+  pcInfo["CPU Cores"] = navigator.hardwareConcurrency || "Unknown";
+  pcInfo["RAM (GB)"] = navigator.deviceMemory || "Unknown";
+  pcInfo["Screen Resolution"] = `${screen.width} x ${screen.height}`;
+  
+  let canvas = document.createElement("canvas");
+  let gl = canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
+  if(gl){
+    let debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+    pcInfo["GPU"] = debugInfo ? gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL) : "Unknown";
+  } else { pcInfo["GPU"] = "Not Supported"; }
+
+  // Software
+  pcInfo["Browser Name"] = navigator.appName;
+  pcInfo["Browser Version"] = navigator.userAgent;
+  pcInfo["OS"] = navigator.userAgent.includes("Windows") ? "Windows" :
+                 navigator.userAgent.includes("Mac") ? "MacOS" :
+                 navigator.userAgent.includes("Linux") ? "Linux" : "Unknown";
+  pcInfo["Platform"] = navigator.platform;
+  pcInfo["Language"] = navigator.language || "Unknown";
+  pcInfo["Timezone"] = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+  // Battery
+  if(navigator.getBattery){
+    const battery = await navigator.getBattery();
+    pcInfo["Battery Level"] = (battery.level*100)+"%";
+    pcInfo["Charging"] = battery.charging ? "Yes" : "No";
+  } else {
+    pcInfo["Battery Level"] = "Not Supported";
+    pcInfo["Charging"] = "Not Supported";
+  }
+
+  // Network
+  if(navigator.connection){
+    pcInfo["Network Type"] = navigator.connection.effectiveType || "Unknown";
+    pcInfo["Downlink"] = navigator.connection.downlink || "Unknown";
+  } else {
+    pcInfo["Network Type"] = "Not Supported";
+    pcInfo["Downlink"] = "Not Supported";
+  }
+
+  // Fill Hardware Table
+  const hardwareTable = document.getElementById("hardwareTable");
+  hardwareTable.innerHTML = '<tr><th>Property</th><th>Value</th></tr>';
+  addRow(hardwareTable, "CPU Cores", pcInfo["CPU Cores"]);
+  addRow(hardwareTable, "RAM (GB)", pcInfo["RAM (GB)"]);
+  addRow(hardwareTable, "Screen Resolution", pcInfo["Screen Resolution"]);
+  addRow(hardwareTable, "GPU", pcInfo["GPU"]);
+  document.getElementById("hardwareSection").style.display = "block";
+
+  // Fill Software Table
+  const softwareTable = document.getElementById("softwareTable");
+  softwareTable.innerHTML = '<tr><th>Property</th><th>Value</th></tr>';
+  addRow(softwareTable, "Browser Name", pcInfo["Browser Name"]);
+  addRow(softwareTable, "Browser Version", pcInfo["Browser Version"]);
+  addRow(softwareTable, "OS", pcInfo["OS"]);
+  addRow(softwareTable, "Platform", pcInfo["Platform"]);
+  addRow(softwareTable, "Language", pcInfo["Language"]);
+  addRow(softwareTable, "Timezone", pcInfo["Timezone"]);
+  addRow(softwareTable, "Battery Level", pcInfo["Battery Level"]);
+  addRow(softwareTable, "Charging", pcInfo["Charging"]);
+  document.getElementById("softwareSection").style.display = "block";
+
+  // Fill Network Table
+  const networkTable = document.getElementById("networkTable");
+  networkTable.innerHTML = '<tr><th>Property</th><th>Value</th></tr>';
+  addRow(networkTable, "Network Type", pcInfo["Network Type"]);
+  addRow(networkTable, "Downlink", pcInfo["Downlink"]);
+  document.getElementById("networkSection").style.display = "block";
+
+  downloadBtn.style.display = "inline-block";
+}
+
+// Scan button click
+scanBtn.addEventListener("click", scanPC);
+
+// Download as .txt
+downloadBtn.addEventListener("click", () => {
+  let text = "=== Hardware ===\n";
+  text += `CPU Cores: ${pcInfo["CPU Cores"]}\n`;
+  text += `RAM (GB): ${pcInfo["RAM (GB)"]}\n`;
+  text += `Screen Resolution: ${pcInfo["Screen Resolution"]}\n`;
+  text += `GPU: ${pcInfo["GPU"]}\n\n`;
+
+  text += "=== Software ===\n";
+  text += `Browser Name: ${pcInfo["Browser Name"]}\n`;
+  text += `Browser Version: ${pcInfo["Browser Version"]}\n`;
+  text += `OS: ${pcInfo["OS"]}\n`;
+  text += `Platform: ${pcInfo["Platform"]}\n`;
+  text += `Language: ${pcInfo["Language"]}\n`;
+  text += `Timezone: ${pcInfo["Timezone"]}\n`;
+  text += `Battery Level: ${pcInfo["Battery Level"]}\n`;
+  text += `Charging: ${pcInfo["Charging"]}\n\n`;
+
+  text += "=== Network ===\n";
+  text += `Network Type: ${pcInfo["Network Type"]}\n`;
+  text += `Downlink: ${pcInfo["Downlink"]}\n`;
+
+  const blob = new Blob([text], {type:"text/plain"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "PC_Info_Report.txt";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+});
+</script>
+
+</body>
+</html>
